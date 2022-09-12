@@ -16,6 +16,14 @@ const STATUS = Object.freeze({
   NOT_FOUND: 'notfound',
   REJECTED: 'rejected',
 });
+
+const scrollResults = toTop => {
+  const obj = {
+    top: toTop ? 0 : window.innerHeight,
+    behavior: 'smooth',
+  }
+  toTop ? window.scrollTo(obj) : window.scrollBy(obj);
+}
 export class App extends Component {
   state = {
     images: [],
@@ -34,36 +42,29 @@ export class App extends Component {
         const response = await API.fetchImages(query, page);
         if (!response.hits.length) {
           this.setState({ status: STATUS.NOT_FOUND });
+          return;
         }
-        else {
-          if (prevState.query === query && page !== 1) { //pagination
-            this.setState({ images: [...prevState.images, ...response.hits], page }, () => (
-              window.scrollBy({
-                top: window.innerHeight,
-                behavior: 'smooth',
-              })
-            ));
-          }
-          else { // new search
-            this.setState({ images: response.hits, page, pages: Math.ceil(response.totalHits / API.PER_PAGE) }, () => (
-              window.scrollTo({
-                top: 0,
-                behavior: 'smooth',
-              })
-            ));
-            toast.info(`Found ${response.totalHits} images`)
-          }
-          this.setState({ status: STATUS.RESOLVED });
+        const isNewQuery = page === 1;
+        this.setState(prevState => {
+          const images = isNewQuery ? [] : prevState.images;
+          return { images: [...images, ...response.hits], pages: Math.ceil(response.totalHits / API.PER_PAGE) }
+        }, () => (
+          scrollResults(isNewQuery)
+        ));
+        if (isNewQuery) {
+          toast.info(`Found ${response.totalHits} images`);
         }
+        this.setState({ status: STATUS.RESOLVED });
       }
       catch (e) {
+        console.log(e)
         return this.setState({ errorMessage: e.message, status: STATUS.REJECTED });
       }
     }
   }
 
   handleSearch = query => {
-    this.setState({ images: [], pages: 0, query: '' }, () => (this.setState({ query, page: 1 })));
+    this.setState({ pages: 0, query: '' }, () => (this.setState({ query, page: 1 })));
     // this.setState({ query, page: 1 })
   }
 
@@ -91,6 +92,7 @@ export class App extends Component {
         {status === STATUS.NOT_FOUND && <NotFound />}
 
         {status === STATUS.REJECTED && errorMessage}
+
         <ToastContainer
           position="top-right"
           autoClose={3000}
