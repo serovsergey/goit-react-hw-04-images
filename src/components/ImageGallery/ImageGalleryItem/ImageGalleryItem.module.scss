@@ -15,3 +15,7 @@
   transform: scale(1.03);
   cursor: zoom-in;
 }
+
+.innerImg {
+  max-height: calc(100vh - 24px);
+}
