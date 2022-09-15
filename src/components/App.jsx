@@ -41,20 +41,20 @@ export class App extends Component {
       try {
         const response = await API.fetchImages(query, page);
         if (!response.hits.length) {
-          this.setState({ status: STATUS.NOT_FOUND });
+          this.setState({ images: [], status: STATUS.NOT_FOUND });
           return;
         }
         const isNewQuery = page === 1;
         this.setState(prevState => {
           const images = isNewQuery ? [] : prevState.images;
-          return { images: [...images, ...response.hits], pages: Math.ceil(response.totalHits / API.PER_PAGE) }
+          return { images: [...images, ...response.hits], pages: Math.ceil(response.totalHits / API.PER_PAGE), status: STATUS.RESOLVED }
         }, () => (
           scrollResults(isNewQuery)
         ));
         if (isNewQuery) {
           toast.info(`Found ${response.totalHits} images`);
         }
-        this.setState({ status: STATUS.RESOLVED });
+        // this.setState({ status: STATUS.RESOLVED });
       }
       catch (e) {
         console.log(e)
