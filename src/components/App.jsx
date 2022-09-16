@@ -43,6 +43,7 @@ const searchReducer = (state, action) => {
   }
 }
 
+
 export const App = () => {
   const [searchData, dispatch] = useReducer(searchReducer, initialSearchState);
   const [status, setStatus] = useState(STATUS.IDLE);
