@@ -1,52 +1,48 @@
 import PropTypes from 'prop-types'
-import React, { Component } from 'react';
 import s from './SearchForm.module.scss';
 import { ReactComponent as SearchIcon } from '../../assets/search.svg';
 import { toast } from 'react-toastify';
+import { useState } from 'react';
 
-export class SearchForm extends Component {
-  static propTypes = {
-    onSearch: PropTypes.func.isRequired,
+export const SearchForm = ({ onSearch }) => {
+
+  const [search, setSearch] = useState('');
+
+  const handleChange = evt => {
+    setSearch(evt.currentTarget.value);
   }
 
-  state = {
-    search: '',
-  }
-
-  handleChange = evt => {
-    this.setState({ search: evt.currentTarget.value });
-  }
-
-  handleSearch = evt => {
+  const handleSearch = evt => {
     evt.preventDefault();
-    const searchString = this.state.search.trim();
+    const searchString = search.trim();
     if (searchString) {
-      this.props.onSearch(searchString);
-      this.setState({ search: '' });
+      onSearch(searchString);
+      setSearch('');
     }
     else {
       toast.error('Please enter search string!');
     }
   }
 
-  render() {
-    const { search } = this.state;
-    return (
-      <form className={s.SearchForm} onSubmit={this.handleSearch}>
-        <button className={s['SearchForm-button']} type='submit'><SearchIcon /></button>
-        <label className={s['SearchForm-button-label']}>Search
-        </label>
-        <input
-          className={s['SearchForm-input']}
-          type="text"
-          autoComplete="off"
-          autoFocus
-          placeholder='Search images and photos'
-          onChange={this.handleChange}
-          value={search} />
-      </form>
-    )
-  }
+  return (
+    <form className={s.SearchForm} onSubmit={handleSearch}>
+      <button className={s['SearchForm-button']} type='submit'><SearchIcon /></button>
+      <label className={s['SearchForm-button-label']}>Search
+      </label>
+      <input
+        className={s['SearchForm-input']}
+        type="text"
+        autoComplete="off"
+        autoFocus
+        placeholder='Search images and photos'
+        onChange={handleChange}
+        value={search} />
+    </form>
+  )
+}
+
+SearchForm.propTypes = {
+  onSearch: PropTypes.func.isRequired,
 }
 
 export default SearchForm

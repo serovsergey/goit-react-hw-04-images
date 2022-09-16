@@ -1,9 +1,8 @@
-import React from 'react'
 import PropTypes from 'prop-types'
 import SearchForm from 'components/SearchForm';
 import s from './Searchbar.module.scss';
 
-function Searchbar({ onSearch }) {
+const Searchbar = ({ onSearch }) => {
   return (
     <header className={s.Searchbar}>
       <SearchForm onSearch={onSearch} />

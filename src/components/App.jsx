@@ -1,4 +1,3 @@
-import React, { Component } from 'react'
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import * as API from '../services/pixabayAPI';
@@ -8,6 +7,7 @@ import ImageGallery from './ImageGallery';
 import Searchbar from './Searchbar';
 import s from './App.module.scss';
 import NotFound from './NotFound';
+import { useEffect, useReducer, useRef, useState } from 'react';
 
 const STATUS = Object.freeze({
   IDLE: 'idle',
@@ -17,94 +17,109 @@ const STATUS = Object.freeze({
   REJECTED: 'rejected',
 });
 
-const scrollResults = toTop => {
-  const obj = {
-    top: toTop ? 0 : window.innerHeight,
-    behavior: 'smooth',
-  }
-  toTop ? window.scrollTo(obj) : window.scrollBy(obj);
+const initialSearchState = {
+  images: [],
+  query: '',
+  page: 0,
+  pages: 0,
 }
-export class App extends Component {
-  state = {
-    images: [],
-    query: '',
-    page: 1,
-    pages: 0,
-    status: STATUS.IDLE,
-    errorMessage: '',
-  }
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
-    if (query && (prevState.query !== query || prevState.page !== page)) {
-      this.setState({ status: STATUS.PENDING })
-      try {
-        const response = await API.fetchImages(query, page);
-        if (!response.hits.length) {
-          this.setState({ images: [], status: STATUS.NOT_FOUND });
-          return;
-        }
-        const isNewQuery = page === 1;
-        this.setState(prevState => {
-          const images = isNewQuery ? [] : prevState.images;
-          return { images: [...images, ...response.hits], pages: Math.ceil(response.totalHits / API.PER_PAGE), status: STATUS.RESOLVED }
-        }, () => (
-          scrollResults(isNewQuery)
-        ));
-        if (isNewQuery) {
-          toast.info(`Found ${response.totalHits} images`);
-        }
-        // this.setState({ status: STATUS.RESOLVED });
+const searchReducer = (state, action) => {
+  const { type, payload } = action;
+  switch (type) {
+    case 'search':
+      return { ...state, query: payload, page: 0, images: [] }
+    case 'load-more':
+      return { ...state, page: state.page + 1 }
+    case 'clear-data':
+      return initialSearchState;
+    case 'set-data':
+      if (!state.images.length) {
+        toast.info(`Found ${payload.totalHits} images`);
       }
-      catch (e) {
-        console.log(e)
-        return this.setState({ errorMessage: e.message, status: STATUS.REJECTED });
-      }
+      return { ...state, images: [...state.images, ...payload.hits], pages: Math.ceil(payload.totalHits / API.PER_PAGE), page: state.images.length ? state.page : 1 };
+    default:
+      throw Error('Undefined action!')
+  }
+}
+
+export const App = () => {
+  const [searchData, dispatch] = useReducer(searchReducer, initialSearchState);
+  const [status, setStatus] = useState(STATUS.IDLE);
+  const [errorMessage, setErrorMessage] = useState('');
+  const listRef = useRef(0);
+  const prevHeightRef = useRef(0);
+
+  useEffect(() => {
+    if (!searchData.query || searchData.page === 1) {
+      return;
     }
+    console.log('useEffect');
+    (async () => {
+      setStatus(STATUS.PENDING);
+      try {
+        const response = await API.fetchImages(searchData.query, searchData.page || 1);
+        if (response.hits.length) {
+          setStatus(STATUS.RESOLVED);
+          dispatch({ type: 'set-data', payload: response });
+          if (listRef.current) {
+            prevHeightRef.current = listRef.current.clientHeight;
+          }
+        }
+        else {
+          setStatus(STATUS.NOT_FOUND);
+          dispatch({ type: 'clear-data' });
+        }
+      } catch (e) {
+        setStatus(STATUS.REJECTED);
+        setErrorMessage(e.message);
+      }
+    })();
+  }, [searchData.page, searchData.query]);
+
+  useEffect(() => {
+    window.scrollTo({ top: prevHeightRef.current, behavior: 'smooth' });
+  }, [searchData.images.length])
+
+  const handleSearch = query => {
+    dispatch({ type: 'search', payload: query });
+    prevHeightRef.current = 0;
   }
 
-  handleSearch = query => {
-    this.setState({ pages: 0, query: '' }, () => (this.setState({ query, page: 1 })));
-    // this.setState({ query, page: 1 })
+  const handleLoadMore = () => {
+    dispatch({ type: 'load-more' });
   }
 
-  handleLoadMore = () => {
-    this.setState(prevState => (
-      { page: prevState.page + 1 }
-    ))
-  }
+  const { images, page, pages } = searchData;
+  console.log('render')
+  return (
+    <div className={s.App}>
+      <Searchbar onSearch={handleSearch} />
+      {!!images.length && <ImageGallery items={images} listRef={listRef} />}
 
-  render() {
-    const { status, images, page, pages, errorMessage } = this.state;
-    return (
-      <div className={s.App}>
-        <Searchbar onSearch={this.handleSearch} />
-        {!!images.length && <ImageGallery items={images} />}
+      {status === STATUS.PENDING && <Loader />}
 
-        {status === STATUS.PENDING && <Loader />}
+      {!!images.length && page < pages && (
+        <div className={s.loadmore}>
+          <Button type="button" onClick={handleLoadMore}>Load More</Button>
+        </div>
+      )}
 
-        {!!images.length && page < pages && (
-          <div className={s.loadmore}>
-            <Button type="button" onClick={this.handleLoadMore}>Load More</Button>
-          </div>
-        )}
+      {status === STATUS.NOT_FOUND && <NotFound />}
 
-        {status === STATUS.NOT_FOUND && <NotFound />}
+      {status === STATUS.REJECTED && errorMessage}
 
-        {status === STATUS.REJECTED && errorMessage}
-
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-      </div>
-    )
-  }
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </div>
+  )
 }

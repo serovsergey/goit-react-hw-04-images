@@ -1,11 +1,10 @@
-import React from 'react'
 import PropTypes from 'prop-types';
 import s from './ImageGallery.module.scss';
 import ImageGalleryItem from './ImageGalleryItem';
 
-function ImageGallery({ items }) {
+const ImageGallery = ({ items, listRef }) => {
   return (
-    <ul className={s.ImageGallery}>
+    <ul className={s.ImageGallery} ref={listRef}>
       {items.map(item => (
         <ImageGalleryItem key={item.id} webformatURL={item.webformatURL} largeImageURL={item.largeImageURL} tags={item.tags} />
       ))}
