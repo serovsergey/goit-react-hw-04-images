@@ -55,7 +55,6 @@ export const App = () => {
     if (!searchData.query || searchData.page === 1) {
       return;
     }
-    console.log('useEffect');
     (async () => {
       setStatus(STATUS.PENDING);
       try {
@@ -92,7 +91,6 @@ export const App = () => {
   }
 
   const { images, page, pages } = searchData;
-  console.log('render')
   return (
     <div className={s.App}>
       <Searchbar onSearch={handleSearch} />
