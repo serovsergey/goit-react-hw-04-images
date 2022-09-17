@@ -7,7 +7,7 @@ import ImageGallery from './ImageGallery';
 import Searchbar from './Searchbar';
 import s from './App.module.scss';
 import NotFound from './NotFound';
-import { useEffect, useReducer, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react';
 
 const STATUS = Object.freeze({
   IDLE: 'idle',
@@ -48,7 +48,7 @@ export const App = () => {
   const [searchData, dispatch] = useReducer(searchReducer, initialSearchState);
   const [status, setStatus] = useState(STATUS.IDLE);
   const [errorMessage, setErrorMessage] = useState('');
-  const listRef = useRef(0);
+  const listRef = useRef(null);
   const prevHeightRef = useRef(0);
 
   useEffect(() => {
@@ -77,7 +77,11 @@ export const App = () => {
     })();
   }, [searchData.page, searchData.query]);
 
-  useEffect(() => {
+  // useEffect(() => {
+  //   window.scrollTo({ top: prevHeightRef.current, behavior: 'smooth' });
+  // }, [searchData.images.length])
+
+  useLayoutEffect(() => {
     window.scrollTo({ top: prevHeightRef.current, behavior: 'smooth' });
   }, [searchData.images.length])
 
